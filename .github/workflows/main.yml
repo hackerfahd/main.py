@@ -57,7 +57,7 @@ jobs:
 
       # 10. Upload APK
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: flet-apk
           path: build/android/*.apk
