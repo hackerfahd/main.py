@@ -1,51 +1,67 @@
 import sys
 import os
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
-class FileManager(QMainWindow):
+class IOSFileManager(QMainWindow):
 
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("File Manager")
-        self.resize(500,600)
+        self.path = os.getcwd()
 
-        self.folder = os.getcwd()
+        self.setWindowTitle("iOS File Manager")
+        self.resize(700,600)
 
-        self.widget = QWidget()
-        self.setCentralWidget(self.widget)
+        main = QWidget()
+        self.setCentralWidget(main)
 
         self.layout = QVBoxLayout()
-        self.widget.setLayout(self.layout)
+        main.setLayout(self.layout)
 
-        self.title = QLabel("Files")
-        self.title.setAlignment(Qt.AlignCenter)
-        self.title.setStyleSheet("font-size:24px;")
+        # Top bar
+        bar = QHBoxLayout()
 
-        self.layout.addWidget(self.title)
+        self.back = QPushButton("←")
+        self.back.clicked.connect(self.go_back)
 
-        self.list = QListWidget()
-        self.layout.addWidget(self.list)
+        self.search = QLineEdit()
+        self.search.setPlaceholderText("Search")
+        self.search.textChanged.connect(self.load_files)
 
-        buttons = QHBoxLayout()
-
-        self.upload = QPushButton("Upload")
-        self.delete = QPushButton("Delete")
-        self.refresh = QPushButton("Refresh")
-
-        buttons.addWidget(self.upload)
-        buttons.addWidget(self.delete)
-        buttons.addWidget(self.refresh)
-
-        self.layout.addLayout(buttons)
-
-        self.upload.clicked.connect(self.upload_file)
-        self.delete.clicked.connect(self.delete_file)
+        self.refresh = QPushButton("⟳")
         self.refresh.clicked.connect(self.load_files)
 
-        self.list.itemDoubleClicked.connect(self.open_file)
+        bar.addWidget(self.back)
+        bar.addWidget(self.search)
+        bar.addWidget(self.refresh)
+
+        self.layout.addLayout(bar)
+
+        # File grid
+        self.list = QListWidget()
+        self.list.setViewMode(QListWidget.IconMode)
+        self.list.setIconSize(QSize(64,64))
+        self.list.setResizeMode(QListWidget.Adjust)
+        self.list.setSpacing(20)
+        self.list.itemDoubleClicked.connect(self.open_item)
+
+        self.layout.addWidget(self.list)
+
+        # Bottom buttons
+        bottom = QHBoxLayout()
+
+        self.delete = QPushButton("Delete")
+        self.delete.clicked.connect(self.delete_file)
+
+        self.up = QPushButton("Upload")
+        self.up.clicked.connect(self.upload_file)
+
+        bottom.addWidget(self.delete)
+        bottom.addWidget(self.up)
+
+        self.layout.addLayout(bottom)
 
         self.setStyleSheet("""
 
@@ -53,27 +69,30 @@ class FileManager(QMainWindow):
         background:#0f172a;
         }
 
-        QLabel{
-        color:white;
-        }
-
         QListWidget{
         background:#1e293b;
+        border-radius:20px;
+        padding:20px;
         color:white;
-        border-radius:15px;
-        padding:10px;
         }
 
         QPushButton{
         background:#3b82f6;
-        color:white;
         border:none;
-        padding:10px;
+        padding:8px;
         border-radius:10px;
+        color:white;
         }
 
         QPushButton:hover{
         background:#2563eb;
+        }
+
+        QLineEdit{
+        background:#1e293b;
+        border-radius:10px;
+        padding:6px;
+        color:white;
         }
 
         """)
@@ -82,28 +101,81 @@ class FileManager(QMainWindow):
 
     def load_files(self):
         self.list.clear()
-        for f in os.listdir(self.folder):
-            self.list.addItem(f)
 
-    def upload_file(self):
-        file,_ = QFileDialog.getOpenFileName(self,"Select File")
-        if file:
-            name = os.path.basename(file)
-            with open(file,"rb") as src:
-                with open(name,"wb") as dst:
-                    dst.write(src.read())
-        self.load_files()
+        query = self.search.text().lower()
+
+        for f in os.listdir(self.path):
+
+            if query and query not in f.lower():
+                continue
+
+            item = QListWidgetItem()
+
+            full = os.path.join(self.path,f)
+
+            if os.path.isdir(full):
+                icon = self.style().standardIcon(QStyle.SP_DirIcon)
+            else:
+                icon = self.style().standardIcon(QStyle.SP_FileIcon)
+
+            item.setIcon(icon)
+            item.setText(f)
+
+            self.list.addItem(item)
+
+    def open_item(self,item):
+
+        name = item.text()
+        full = os.path.join(self.path,name)
+
+        if os.path.isdir(full):
+            self.path = full
+            self.load_files()
+        else:
+            os.startfile(full)
+
+    def go_back(self):
+
+        parent = os.path.dirname(self.path)
+
+        if parent:
+            self.path = parent
+            self.load_files()
 
     def delete_file(self):
+
         item = self.list.currentItem()
-        if item:
-            os.remove(item.text())
+
+        if not item:
+            return
+
+        name = item.text()
+        full = os.path.join(self.path,name)
+
+        if os.path.isfile(full):
+            os.remove(full)
+
         self.load_files()
 
-    def open_file(self,item):
-        os.startfile(item.text())
+    def upload_file(self):
+
+        file,_ = QFileDialog.getOpenFileName(self,"Select file")
+
+        if file:
+
+            name = os.path.basename(file)
+            dest = os.path.join(self.path,name)
+
+            with open(file,"rb") as src:
+                with open(dest,"wb") as dst:
+                    dst.write(src.read())
+
+        self.load_files()
+
 
 app = QApplication(sys.argv)
-window = FileManager()
+
+window = IOSFileManager()
 window.show()
+
 sys.exit(app.exec_())
