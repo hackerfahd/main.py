@@ -37,11 +37,8 @@ def main(page: Page):
 
     current_path = os.getcwd()
     
-    # قائمة الملفات
     file_list = ListView(expand=True, spacing=5, padding=5, bgcolor="#2E2E3E", border_radius=10)
-    
     path_label = Text(value=current_path, color="white", size=16)
-    
     folder_input = TextField(hint_text="New folder name", expand=True, color="white", bgcolor="#3E3E50")
     
     def refresh_list():
@@ -50,7 +47,6 @@ def main(page: Page):
             def delete_click(e, p=full_path):
                 delete_file(p)
                 refresh_list()
-
             def preview_click(e, p=full_path):
                 if os.path.isfile(p):
                     ext = os.path.splitext(p)[1].lower()
@@ -83,7 +79,6 @@ def main(page: Page):
             folder_input.value = ""
             refresh_list()
     
-    # رفع الملفات
     file_picker = FilePicker(on_result=lambda e: upload_file(e))
     page.overlay.append(file_picker)
     
