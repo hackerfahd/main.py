@@ -41,6 +41,14 @@ jobs:
       with:
         flutter-version: ${{ env.FLUTTER_VERSION }}
 
+    - name: Add Flutter to PATH
+      run: echo "${HOME}/flutter/bin" >> $GITHUB_PATH
+
+    - name: Install Flet CLI
+      run: |
+        python -m pip install --upgrade flet
+        flet --version
+
     - name: Setup Java JDK
       uses: actions/setup-java@v4
       with:
