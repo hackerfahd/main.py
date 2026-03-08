@@ -1,14 +1,6 @@
-name: Build APK Only
+name: Build APK Debug
 
 on:
-  push:
-    branches:
-      - master
-      - main
-  pull_request:
-    branches:
-      - master
-      - main
   workflow_dispatch:
 
 env:
@@ -23,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v4
 
     - name: Setup Python
@@ -44,26 +36,32 @@ jobs:
     - name: Add Flutter to PATH
       run: echo "${HOME}/flutter/bin" >> $GITHUB_PATH
 
-    - name: Install Flet CLI
-      run: |
-        python -m pip install --upgrade flet
-        flet --version
-
-    - name: Setup Java JDK
+    - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: ${{ env.JAVA_VERSION }}
 
-    - name: Build APK
+    - name: Install Android SDK
       run: |
-        flutter config --no-analytics
-        flet build apk --verbose --build-number=${{ env.BUILD_NUMBER }} --build-version=${{ env.BUILD_VERSION }}
+        sudo apt-get update
+        sudo apt-get install -y unzip openjdk-21-jdk wget
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        mkdir -p $HOME/Android/cmdline-tools
+        unzip cmdline-tools.zip -d $HOME/Android/cmdline-tools
+        yes | $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager --licenses
+        $HOME/Android/cmdline-tools/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+    - name: Install Flet CLI
+      run: python -m pip install --upgrade flet
+
+    - name: Build APK Debug
+      run: flet build apk --debug --build-number=${{ env.BUILD_NUMBER }} --build-version=${{ env.BUILD_VERSION }}
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: apk-build-artifact
+        name: apk-debug-artifact
         path: build/apk
         if-no-files-found: warn
         overwrite: false
