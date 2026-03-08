@@ -15,22 +15,32 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # --- تثبيت الأدوات الأساسية لتجنب tar/not found ---
+      - name: Install required Linux packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tar unzip curl git libgtk-3-dev mesa-utils
+
+      # --- إعداد Python ---
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - run: pip install flet-cli==0.82.0
 
+      # --- إعداد Flutter ---
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.41.4'
           channel: stable
 
+      # --- إعداد JDK 17 ---
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '17'
 
+      # --- تنزيل Android SDK Command-line tools ---
       - name: Install Android SDK command-line tools
         run: |
           mkdir -p $ANDROID_HOME/cmdline-tools
@@ -40,6 +50,7 @@ jobs:
           mv cmdline-tools latest
           rm cmdline-tools.zip
 
+      # --- تثبيت الحزم المطلوبة من SDK ---
       - name: Install Android SDK packages
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-35" "build-tools;34.0.0"
@@ -49,6 +60,7 @@ jobs:
 
       - run: flutter doctor -v
 
+      # --- التحقق من وجود main.py ---
       - name: Check main.py
         run: |
           if [ ! -f main.py ]; then
@@ -56,8 +68,10 @@ jobs:
             exit 1
           fi
 
+      # --- بناء APK ---
       - run: flet pack android --release
 
+      # --- رفع APK ---
       - uses: actions/upload-artifact@v4
         with:
           name: flet-apk
