@@ -1,7 +1,7 @@
 import flet
 from flet import (
     Page, Column, Row, Text, TextField, IconButton, icons, ListView,
-    FilePicker, FilePickerResultEvent, ElevatedButton, AlertDialog, Container
+    ElevatedButton, FilePicker, FilePickerResultEvent, Container, Image
 )
 import os
 import shutil
@@ -29,12 +29,12 @@ def create_folder(path, name):
 
 # --- واجهة Flet ---
 def main(page: Page):
-    page.title = "File Manager"
-    page.window_width = 900
-    page.window_height = 600
+    page.title = "Advanced File Manager"
+    page.window_width = 1000
+    page.window_height = 650
     page.padding = 10
     page.bgcolor = "#1E1E2F"
-    
+
     current_path = os.getcwd()
     
     # قائمة الملفات
@@ -47,18 +47,34 @@ def main(page: Page):
     def refresh_list():
         file_list.controls.clear()
         for name, full_path, icon in list_files(current_path):
+            def delete_click(e, p=full_path):
+                delete_file(p)
+                refresh_list()
+
+            def preview_click(e, p=full_path):
+                if os.path.isfile(p):
+                    ext = os.path.splitext(p)[1].lower()
+                    if ext in [".png", ".jpg", ".jpeg", ".gif"]:
+                        page.dialog = Container(
+                            content=Image(src=p, width=500, height=500),
+                            padding=10
+                        )
+                        page.dialog.open = True
+                        page.update()
+                    else:
+                        page.snack_bar = flet.SnackBar(Text(f"Cannot preview {ext}"))
+                        page.snack_bar.open = True
+                        page.update()
+            
             btn_row = Row(
                 controls=[
+                    IconButton(icon=icon, on_click=lambda e, p=full_path: preview_click(e, p)),
                     Text(name, expand=True, color="white"),
-                    IconButton(icons.DELETE, on_click=lambda e, p=full_path: delete_file_click(p)),
+                    IconButton(icons.DELETE, on_click=delete_click),
                 ]
             )
             file_list.controls.append(btn_row)
         page.update()
-    
-    def delete_file_click(path_to_delete):
-        delete_file(path_to_delete)
-        refresh_list()
     
     def create_folder_click(e):
         name = folder_input.value.strip()
@@ -77,10 +93,8 @@ def main(page: Page):
                 shutil.copy(f.path, current_path)
         refresh_list()
     
-    # زر فتح FilePicker
     upload_btn = ElevatedButton("Upload File", on_click=lambda e: file_picker.pick_files())
     
-    # تصميم واجهة حديثة
     page.add(
         Column(
             controls=[
@@ -94,7 +108,6 @@ def main(page: Page):
     )
     
     refresh_list()
-
 
 if __name__ == "__main__":
     flet.app(target=main)
